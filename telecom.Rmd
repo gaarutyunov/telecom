@@ -1,0 +1,21 @@
+```{r}
+library(tidyverse)
+library(quantmod)
+library(readr)
+library(xts)
+```
+```{r}
+SPSITE <- read_excel("SPSITE.xlsx", col_types = c("date", "numeric"))
+SPSITE.xts = xts(SPSITE$Close, order.by = SPSITE$Date)
+
+quantmod::getSymbols('TMUS;^GSPC', from = '2006-06-09', to = '2020-09-18')
+```
+```{r}
+plot(GSPC$GSPC.Close, main = 'S&P 500')
+plot(SPSITE.xts, main = "S&P Telecom Select Industry Index")
+plot(TMUS$TMUS.Close, main = "T-Mobile US, Inc.")
+```
+```{r}
+
+```
+
