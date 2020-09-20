@@ -5,9 +5,8 @@ library(xts)
 library(xtsExtra)
 library(readr)
 library(tsbox)
-library(tseries)
 library(forecast)
-source('prewhiten.R')
+source('prewhiten1.R')
 ```
 ```{r}
 SPSITE <- read_delim("SPSITE.csv", ";", escape_double = FALSE, 
@@ -26,10 +25,6 @@ plot(SPSITE.xts, main = "S&P Telecom Select Industry Index")
 plot(TMUS$TMUS.Adjusted, main = "T-Mobile US, Inc.")
 ```
 ```{r}
-quantmod::candleChart(TMUS, theme = 'white', up.col = 'green', dm.col = 'red')
-quantmod::addSMA(n = c(20, 50, 200))
-```
-```{r}
 par(mfrow=c(1,1))
 plot(GSPC$GSPC.Close, main = 'S&P 500 & S&P Telecom (red)', ylab='', xlab = 'Год')
 par(new=TRUE)
@@ -37,11 +32,64 @@ plot(SPSITE.xts, main = '', col = 'red', axes = FALSE, ylab='', xlab = '', grid.
 axis(4, col = 'red')
 ```
 ```{r}
+par(mfrow=c(1,1))
+plot(GSPC$GSPC.Close['2020-01-01/2020-09-17'], main = 'S&P 500 & S&P Telecom (red)', ylab='', xlab = 'Год', xaxt = 'n')
+par(new=TRUE)
+plot(SPSITE.xts['2020-01-01/2020-09-17'], main = '', col = 'red', axes = FALSE, ylab='', xlab = '', grid.col = NA, xaxt = 'n')
+axis(4, col = 'red')
+```
+
+
+```{r}
+par(mfrow=c(1,1))
+plot(quantmod::dailyReturn(GSPC$GSPC.Close, subset = '2020-01-01/2020-09-17'), main = 'S&P 500 & S&P Telecom (red)', ylab='', xlab = 'Год')
+par(new=TRUE)
+plot(dailyReturn(SPSITE.xts, subset = '2020-01-01/2020-09-17'), main = '', col = 'red', axes = FALSE, ylab='', xlab = '', grid.col = NA)
+axis(4, col = 'red')
+```
+
+
+```{r}
 GSPC.ts <- tsbox::ts_ts(GSPC$GSPC.Close)
 SPSITE.ts <- tsbox::ts_ts(SPSITE.xts)
 
 aa = auto.arima(SPSITE.ts)
 
-telecom::prewhiten(SPSITE.ts, GSPC.ts, na.action = na.exclude, lag.max = 50, x.model = aa)
+corr <- prewhiten1(SPSITE.ts, GSPC.ts, na.action = na.approx, lag.max = 20, x.model = aa, plot = FALSE)
+plot(corr$ccf, ylab = 'Кросскоррелиция', xlab = 'Дни (l*365 дней)')
+```
+```{r}
+cor = corr$ccf$acf[,,1]
+lag = corr$ccf$lag[,,1]
+res = data.frame(cor,lag)
+res_max = res[which.max(res$cor),]
+
+paste("Максимальная корреляция ", format(res_max$cor, digits = 2), " при лаге ", format(res_max$lag, digits = 2), " месяц")
+```
+
+
+```{r}
+GSPC.ts <- tsbox::ts_ts(GSPC$GSPC.Close)
+SPSITE.ts <- tsbox::ts_ts(SPSITE.xts)
+
+aa = auto.arima(GSPC.ts)
+
+corr <- prewhiten1(GSPC.ts, SPSITE.ts, na.action = na.approx, lag.max = 20, x.model = aa, plot = FALSE)
+plot(corr$ccf, ylab = 'Кросскоррелиция', xlab = 'Дни (l*365 дней)')
+```
+```{r}
+cor = corr$ccf$acf[,,1]
+lag = corr$ccf$lag[,,1]
+res = data.frame(cor,lag)
+res_max = res[which.max(res$cor),]
+
+paste("Максимальная корреляция ", format(res_max$cor, digits = 2), " при лаге ", format(res_max$lag, digits = 2), " месяц")
+```
+```{r}
+quantmod::candleChart(TMUS, theme = 'white', up.col = 'green', dm.col = 'red', TA = c(addSMA(n = c(20, 50, 200))))
+```
+```{r}
+quantmod::candleChart(TMUS, theme = 'white', up.col = 'green', dm.col = 'red', subset = '2020-01-01/', 
+                      TA = c(addSMA(), addBBands(), addMACD(), addRSI()))
 ```
 
